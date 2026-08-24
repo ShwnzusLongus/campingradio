@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camping Radio</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Camping Radio">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#102338">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --night: #102338;
+    --night-2: #173a56;
+    --card: #1f4e6f;
+    --card-border: #3a7aa8;
+    --cream: #fbf3e2;
+    --cream-dim: #d9e6f0;
+    --ember: #f2a35c;
+    --ember-dim: #de8544;
+    --moss: #5fb4d6;
+    --gold: #e3bd80;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--night);
+    color: var(--cream);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(242,163,92,0.10), transparent),
+      url('/background.jpg') center center / cover no-repeat fixed,
+      var(--night);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(16,35,56,0.55), rgba(16,35,56,0.75));
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(32px, 7vw, 48px);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .tagline {
+    color: var(--cream-dim);
+    font-size: 15px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .now-playing {
+    position: relative;
+    background: linear-gradient(180deg, var(--card), var(--night-2));
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    margin-bottom: 28px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 12px 30px rgba(4,10,18,0.5);
+  }
+
+  .now-playing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(255,255,255,0.09), rgba(255,255,255,0) 45%);
+    pointer-events: none;
+  }
+
+  .ember-glow {
+    position: absolute;
+    inset: -40% -40% auto auto;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(232,130,60,0.35), transparent 70%);
+    filter: blur(10px);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+  }
+  .now-playing.playing .ember-glow { opacity: 1; animation: pulse 2.4s ease-in-out infinite; }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+
+  .np-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .play-btn {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #f0975a, var(--ember));
+    border: none;
+    color: var(--night);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, background 0.2s ease;
+    box-shadow: 0 4px 18px rgba(232,130,60,0.4), 0 1px 0 rgba(255,255,255,0.35) inset;
+  }
+  .play-btn:hover { transform: scale(1.06); background: var(--ember-dim); }
+  .play-btn:active { transform: scale(0.96); }
+
+  .np-info { flex: 1; min-width: 0; }
+
+  .np-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--moss);
+  }
+  .now-playing.playing .np-label { color: var(--ember); }
+
+  .np-name {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .np-status {
+    font-size: 13px;
+    color: var(--cream-dim);
+    margin-top: 3px;
+  }
+
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 22px;
+    flex: 0 0 auto;
+  }
+  .bars span {
+    display: block;
+    width: 3px;
+    background: var(--ember-dim);
+    border-radius: 2px;
+    height: 6px;
+    opacity: 0.5;
+  }
+  .now-playing.playing .bars span {
+    background: var(--ember);
+    opacity: 1;
+    animation: bar 1.1s ease-in-out infinite;
+  }
+  .bars span:nth-child(1){ animation-delay: 0s; }
+  .bars span:nth-child(2){ animation-delay: 0.15s; }
+  .bars span:nth-child(3){ animation-delay: 0.3s; }
+  .bars span:nth-child(4){ animation-delay: 0.45s; }
+  @keyframes bar {
+    0%, 100% { height: 6px; }
+    50% { height: 20px; }
+  }
+
+  .np-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .np-controls input[type="range"] {
+    flex: 1;
+    accent-color: var(--ember);
+  }
+
+  .vol-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--cream-dim);
+    width: 28px;
+    text-align: right;
+  }
+
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 12px 4px;
+  }
+
+  .stations {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+
+  .station {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: linear-gradient(180deg, var(--card), var(--night-2));
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 4px 14px rgba(4,10,18,0.35);
+  }
+  .station::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0) 40%);
+    pointer-events: none;
+  }
+  .station:hover { border-color: var(--moss); transform: translateY(-1px); }
+  .station.active {
+    border-color: var(--ember);
+    background: linear-gradient(180deg, rgba(232,130,60,0.14), var(--card));
+  }
+  .station.station-external { border-style: dashed; }
+  .station.station-external .station-genre { color: var(--gold); }
+
+  .station-logo {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: var(--night-2);
+    border: 1px solid var(--card-border);
+  }
+
+  .station-logo-fallback {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--moss);
+    color: var(--night);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .station-info { flex: 1; min-width: 0; }
+  .station-name { font-weight: 600; font-size: 15px; }
+  .station-genre {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--cream-dim);
+    margin-top: 2px;
+  }
+
+  .station-remove {
+    flex: 0 0 auto;
+    background: none;
+    border: none;
+    color: var(--cream-dim);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    border-radius: 8px;
+  }
+  .station-remove:hover { color: var(--ember); background: rgba(232,130,60,0.1); }
+
+  .station-link {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    color: var(--cream-dim);
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .station-link:hover { color: var(--gold); background: rgba(201,161,92,0.12); }
+
+  .add-form {
+    position: relative;
+    background: linear-gradient(180deg, var(--card), var(--night-2));
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 18px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 18px rgba(4,10,18,0.35);
+  }
+  .add-form::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0) 40%);
+    pointer-events: none;
+  }
+
+  .add-form-title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .add-form-hint {
+    font-size: 12.5px;
+    color: var(--cream-dim);
+    margin: 0 0 14px;
+  }
+
+  .add-form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .add-form input {
+    flex: 1;
+    background: var(--night-2);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--cream);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    min-width: 0;
+  }
+  .add-form input:focus {
+    outline: none;
+    border-color: var(--ember);
+  }
+  .add-form input::placeholder { color: #6b6152; }
+
+  .add-btn {
+    background: var(--moss);
+    border: none;
+    color: var(--cream);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .add-btn:hover { background: #6d9169; }
+  .add-btn:focus-visible, .play-btn:focus-visible, .station:focus-visible, .station-remove:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  .error-msg {
+    color: var(--ember);
+    font-size: 12.5px;
+    margin-top: 6px;
+    min-height: 16px;
+  }
+
+  .search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .search-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--night-2);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+
+  .search-result-logo {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    object-fit: cover;
+    background: var(--card);
+  }
+
+  .search-result-logo-fallback {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--moss);
+    color: var(--night);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  .search-result-info { flex: 1; min-width: 0; }
+  .search-result-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-result-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--cream-dim);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .search-result-add {
+    flex: 0 0 auto;
+    background: var(--ember);
+    border: none;
+    color: var(--night);
+    font-weight: 600;
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .search-result-add:hover { background: var(--ember-dim); }
+  .search-result-add:disabled { opacity: 0.5; cursor: default; }
+
+  .search-hint {
+    font-size: 12px;
+    color: var(--cream-dim);
+    padding: 4px;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 36px;
+    font-size: 12px;
+    color: var(--cream-dim);
+    opacity: 0.6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ember-glow, .bars span { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Web-Radio &middot; Offline-Karte im Kopf</div>
+    <h1>Camping Radio</h1>
+    <p class="tagline">Eure Camping-Sender an einem Ort. Antippen und es läuft.</p>
+  </header>
+
+  <div class="now-playing" id="nowPlaying">
+    <div class="ember-glow"></div>
+    <div class="np-row">
+      <button class="play-btn" id="playBtn" aria-label="Abspielen/Pause">▶</button>
+      <div class="np-info">
+        <div class="np-label" id="npLabel">Kein Sender gewählt</div>
+        <div class="np-name" id="npName">—</div>
+        <div class="np-status" id="npStatus">Wähle unten einen Sender</div>
+      </div>
+      <div class="bars" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="np-controls">
+      <span class="vol-label">🔉</span>
+      <input type="range" id="volume" min="0" max="100" value="70">
+      <span class="vol-label" id="volVal">70</span>
+    </div>
+  </div>
+
+  <div class="section-label">Sender</div>
+  <div class="stations" id="stations"></div>
+
+  <div class="add-form" style="margin-bottom: 20px;">
+    <div class="add-form-title">🔍 Sender suchen</div>
+    <p class="add-form-hint">Durchsucht ein offenes Radio-Verzeichnis mit tausenden Sendern weltweit.</p>
+    <div class="add-form-row">
+      <input type="text" id="searchInput" placeholder="Sendername, z. B. Antenne Bayern">
+      <button class="add-btn" id="searchBtn">Suchen</button>
+    </div>
+    <div class="error-msg" id="searchError"></div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="add-form">
+    <div class="add-form-title">Eigenen Sender hinzufügen</div>
+    <p class="add-form-hint">Name + direkte Stream-URL (https). Wird auf diesem Gerät/Browser gespeichert.</p>
+    <div class="add-form-row">
+      <input type="text" id="newName" placeholder="Name, z. B. Lieblingssender">
+    </div>
+    <div class="add-form-row">
+      <input type="text" id="newUrl" placeholder="https://stream-url...">
+      <button class="add-btn" id="addBtn">Hinzufügen</button>
+    </div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <footer>Läuft direkt über den Stream des jeweiligen Senders</footer>
+</div>
+
+<audio id="audio" preload="none"></audio>
+
+<script>
+  const DEFAULT_STATIONS = [
+    { id: 'groovesalad', name: 'SomaFM Groove Salad', genre: 'Ambient / Chillout', url: 'https://ice1.somafm.com/groovesalad-128-mp3', logo: '/logos/groovesalad.png', builtin: true },
+    { id: 'antenne-nds', name: 'Antenne Niedersachsen', genre: 'Pop & Hits', url: 'https://stream.antenne.com/antenne-nds/mp3-192/stream.antenne.com/', logo: '/logos/antenne-nds.png', builtin: true },
+    { id: 'njoy', name: 'N-JOY', genre: 'Charts & Pop', url: 'https://icecast.ndr.de/ndr/njoy/live/mp3/128/stream.mp3', logo: '/logos/njoy.png', builtin: true },
+    { id: 'ndr2', name: 'NDR 2', genre: 'Pop & Hits', url: 'https://icecast.ndr.de/ndr/ndr2/hamburg/mp3/128/stream.mp3', logo: '/logos/ndr2.png', builtin: true },
+    { id: 'beatsradio', name: 'Beats Radio', genre: 'Deep House / Chillout', url: 'https://live.streams.klassikradio.de/beats-radio/stream/mp3', logo: '/logos/beatsradio.png', builtin: true },
+    { id: 'starradio-bayern', name: 'Star Radio Bayern', genre: 'Pop, Dance, HipHop & RnB', url: 'https://starradiode.ice.infomaniak.ch/starradio-de-128.mp3', link: 'https://www.starradio.bayern/', logo: '/logos/starradio-bayern.png', builtin: true },
+  ];
+
+  const STORAGE_KEY = 'lagerfeuer-fm-custom-stations';
+
+  const audio = document.getElementById('audio');
+  const playBtn = document.getElementById('playBtn');
+  const npLabel = document.getElementById('npLabel');
+  const npName = document.getElementById('npName');
+  const npStatus = document.getElementById('npStatus');
+  const nowPlaying = document.getElementById('nowPlaying');
+  const stationsEl = document.getElementById('stations');
+  const volume = document.getElementById('volume');
+  const volVal = document.getElementById('volVal');
+  const addBtn = document.getElementById('addBtn');
+  const newName = document.getElementById('newName');
+  const newUrl = document.getElementById('newUrl');
+  const errorMsg = document.getElementById('errorMsg');
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const searchError = document.getElementById('searchError');
+  const searchResults = document.getElementById('searchResults');
+
+  let stations = [];
+  let currentId = null;
+  let isPlaying = false;
+
+  function loadCustomStations() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveCustomStations() {
+    const custom = stations.filter(s => !s.builtin);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
+    } catch (e) {
+      console.error('Speichern fehlgeschlagen', e);
+    }
+  }
+
+  function init() {
+    stations = [...DEFAULT_STATIONS, ...loadCustomStations()];
+    renderStations();
+  }
+
+  function renderStations() {
+    stationsEl.innerHTML = '';
+    stations.forEach(st => {
+      const div = document.createElement('div');
+      const noStream = !st.url;
+      div.className = 'station' + (st.id === currentId ? ' active' : '') + (noStream ? ' station-external' : '');
+      div.tabIndex = 0;
+      div.setAttribute('role', 'button');
+
+      const initials = st.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+      const logoHtml = st.logo
+        ? `<img class="station-logo" src="${st.logo}" alt="" onerror="this.outerHTML='<div class=&quot;station-logo-fallback&quot;>${initials}</div>'">`
+        : `<div class="station-logo-fallback">${initials}</div>`;
+
+      div.innerHTML = `
+        ${logoHtml}
+        <div class="station-info">
+          <div class="station-name">${escapeHtml(st.name)}</div>
+          <div class="station-genre">${escapeHtml(st.genre || 'Eigener Sender')}${noStream ? ' · kein Direkt-Stream' : ''}</div>
+        </div>
+        ${st.link ? '<a class="station-link" href="' + st.link + '" target="_blank" rel="noopener noreferrer" aria-label="Sender-Website öffnen" title="Sender-Website öffnen">↗</a>' : ''}
+        ${st.builtin ? '' : '<button class="station-remove" aria-label="Entfernen" data-id="' + st.id + '">×</button>'}
+      `;
+      div.addEventListener('click', (e) => {
+        if (e.target.closest('.station-remove') || e.target.closest('.station-link')) return;
+        if (noStream) {
+          if (st.link) window.open(st.link, '_blank', 'noopener,noreferrer');
+          return;
+        }
+        playStation(st);
+      });
+      div.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (noStream) { if (st.link) window.open(st.link, '_blank', 'noopener,noreferrer'); return; }
+          playStation(st);
+        }
+      });
+      stationsEl.appendChild(div);
+    });
+    stationsEl.querySelectorAll('.station-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeStation(btn.dataset.id);
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function playStation(st) {
+    currentId = st.id;
+    npLabel.textContent = 'Läuft';
+    npName.textContent = st.name;
+    npStatus.textContent = 'Verbinde...';
+    audio.src = st.url;
+    audio.play().then(() => {
+      isPlaying = true;
+      updatePlayUI();
+      npStatus.textContent = st.genre || 'Live-Stream';
+    }).catch(() => {
+      npStatus.textContent = 'Nicht erreichbar (blockiert evtl. fremde Seiten oder ist http:// statt https://)';
+      isPlaying = false;
+      updatePlayUI();
+    });
+    renderStations();
+  }
+
+  function updatePlayUI() {
+    playBtn.textContent = isPlaying ? '❚❚' : '▶';
+    nowPlaying.classList.toggle('playing', isPlaying);
+    if (!isPlaying && currentId) {
+      npLabel.textContent = 'Pausiert';
+    } else if (isPlaying) {
+      npLabel.textContent = 'Läuft';
+    }
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (!currentId) return;
+    if (isPlaying) {
+      audio.pause();
+      isPlaying = false;
+      updatePlayUI();
+    } else {
+      audio.play().then(() => {
+        isPlaying = true;
+        updatePlayUI();
+      }).catch(() => {
+        npStatus.textContent = 'Stream nicht erreichbar';
+      });
+    }
+  });
+
+  audio.addEventListener('waiting', () => { if (isPlaying) npStatus.textContent = 'Puffert...'; });
+  audio.addEventListener('playing', () => {
+    const st = stations.find(s => s.id === currentId);
+    npStatus.textContent = st ? (st.genre || 'Live-Stream') : 'Live-Stream';
+  });
+  audio.addEventListener('error', () => {
+    npStatus.textContent = 'Nicht erreichbar (blockiert evtl. fremde Seiten oder ist http:// statt https://)';
+    isPlaying = false;
+    updatePlayUI();
+  });
+
+  volume.addEventListener('input', () => {
+    audio.volume = volume.value / 100;
+    volVal.textContent = volume.value;
+  });
+  audio.volume = 0.7;
+
+  addBtn.addEventListener('click', () => {
+    const name = newName.value.trim();
+    const url = newUrl.value.trim();
+    errorMsg.textContent = '';
+    if (!name || !url) {
+      errorMsg.textContent = 'Bitte Name und URL angeben.';
+      return;
+    }
+    if (!/^https:\/\//i.test(url)) {
+      errorMsg.textContent = 'Die URL muss mit https:// beginnen.';
+      return;
+    }
+    const id = 'custom-' + Date.now();
+    stations.push({ id, name, genre: 'Eigener Sender', url, builtin: false });
+    renderStations();
+    saveCustomStations();
+    newName.value = '';
+    newUrl.value = '';
+  });
+
+  function removeStation(id) {
+    stations = stations.filter(s => s.id !== id);
+    if (currentId === id) {
+      audio.pause();
+      isPlaying = false;
+      currentId = null;
+      npLabel.textContent = 'Kein Sender gewählt';
+      npName.textContent = '—';
+      npStatus.textContent = 'Wähle unten einen Sender';
+      updatePlayUI();
+    }
+    renderStations();
+    saveCustomStations();
+  }
+
+  // --- Sendersuche über radio-browser.info (offenes, freies Radio-Verzeichnis) ---
+  async function searchStations() {
+    const query = searchInput.value.trim();
+    searchError.textContent = '';
+    searchResults.innerHTML = '';
+    if (!query) {
+      searchError.textContent = 'Bitte einen Suchbegriff eingeben.';
+      return;
+    }
+    searchBtn.disabled = true;
+    searchBtn.textContent = 'Sucht...';
+    try {
+      const res = await fetch(
+        'https://de1.api.radio-browser.info/json/stations/search?name=' +
+        encodeURIComponent(query) +
+        '&limit=15&hidebroken=true&order=clickcount&reverse=true'
+      );
+      if (!res.ok) throw new Error('Suche fehlgeschlagen');
+      const results = await res.json();
+      renderSearchResults(results);
+    } catch (e) {
+      searchError.textContent = 'Suche gerade nicht erreichbar. Später nochmal versuchen.';
+    } finally {
+      searchBtn.disabled = false;
+      searchBtn.textContent = 'Suchen';
+    }
+  }
+
+  function renderSearchResults(results) {
+    searchResults.innerHTML = '';
+    if (!results.length) {
+      searchResults.innerHTML = '<div class="search-hint">Keine Sender gefunden.</div>';
+      return;
+    }
+    results.forEach(r => {
+      const url = r.url_resolved || r.url;
+      if (!url) return;
+      const div = document.createElement('div');
+      div.className = 'search-result';
+      const initials = (r.name || '?').split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+      const logoHtml = r.favicon
+        ? `<img class="search-result-logo" src="${r.favicon}" alt="" onerror="this.outerHTML='<div class=&quot;search-result-logo-fallback&quot;>${initials}</div>'">`
+        : `<div class="search-result-logo-fallback">${initials}</div>`;
+      const meta = [r.country, r.codec, r.bitrate ? r.bitrate + 'kbps' : null].filter(Boolean).join(' · ');
+      div.innerHTML = `
+        ${logoHtml}
+        <div class="search-result-info">
+          <div class="search-result-name">${escapeHtml(r.name || 'Unbenannt')}</div>
+          <div class="search-result-meta">${escapeHtml(meta)}</div>
+        </div>
+        <button class="search-result-add">+ Hinzufügen</button>
+      `;
+      div.querySelector('.search-result-add').addEventListener('click', () => {
+        addStationDirect(r.name || 'Unbenannt', url, r.tags || 'Gefundener Sender');
+        div.querySelector('.search-result-add').textContent = '✓ Hinzugefügt';
+        div.querySelector('.search-result-add').disabled = true;
+      });
+      searchResults.appendChild(div);
+    });
+  }
+
+  function addStationDirect(name, url, genre) {
+    if (!/^https:\/\//i.test(url)) {
+      searchError.textContent = 'Dieser Sender bietet keinen https-Stream an und kann nicht hinzugefügt werden.';
+      return;
+    }
+    const id = 'custom-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+    stations.push({ id, name, genre: genre || 'Gefundener Sender', url, builtin: false });
+    renderStations();
+    saveCustomStations();
+  }
+
+  searchBtn.addEventListener('click', searchStations);
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); searchStations(); }
+  });
+
+  init();
+</script>
+</body>
+</html>
