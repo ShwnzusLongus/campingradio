@@ -175,9 +175,11 @@
     font-family: 'Fraunces', serif;
     font-size: 22px;
     font-weight: 600;
-    white-space: nowrap;
+    line-height: 1.15;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     margin-top: 2px;
   }
 
@@ -227,8 +229,47 @@
 
   .np-controls input[type="range"] {
     flex: 1;
-    accent-color: var(--ember);
+    -webkit-appearance: none;
+    appearance: none;
+    height: 28px;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    --fill: 70%;
   }
+  .np-controls input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--ember) var(--fill), rgba(251,243,226,0.22) var(--fill));
+  }
+  .np-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+    border-radius: 50%;
+    background: var(--cream);
+    border: 3px solid var(--ember);
+    box-shadow: 0 2px 8px rgba(4,10,18,0.5);
+  }
+  .np-controls input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(251,243,226,0.22);
+  }
+  .np-controls input[type="range"]::-moz-range-progress {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--ember);
+  }
+  .np-controls input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cream);
+    border: 3px solid var(--ember);
+  }
+  .np-controls input[type="range"]:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; border-radius: 8px; }
 
   .vol-label {
     font-family: 'IBM Plex Mono', monospace;
@@ -557,6 +598,38 @@
   .stations.editing .station:hover { transform: none; border-color: var(--card-border); }
   .stations.editing .station.active:hover { border-color: var(--ember); }
 
+  .logo-mark {
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 10px 32px rgba(242,163,92,0.35);
+  }
+  h1 { text-shadow: 0 2px 18px rgba(4,10,18,0.55); }
+  .now-playing:not(.playing) .bars { visibility: hidden; }
+
+  .station-play {
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 1;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(251,243,226,0.22);
+    color: var(--cream-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .station-play svg { width: 14px; height: 14px; fill: currentColor; margin-left: 2px; }
+  .station:hover .station-play { color: var(--night); background: var(--ember); border-color: var(--ember); }
+  .station.active .station-name { color: var(--ember); }
+  .station:active { transform: scale(0.985); }
+  .stations.editing .station:active { transform: none; }
+  #shareBtn { background: transparent; border-color: transparent; color: var(--gold); }
+
   .head-actions { display: flex; gap: 8px; }
 
   .station.slot { border-style: dashed; background: rgba(16,35,56,0.4); box-shadow: none; }
@@ -729,6 +802,7 @@
 <div class="wrap">
 
   <header>
+    <img class="logo-mark" src="/icons/icon-192.png" alt="" width="64" height="64">
     <h1>Camping Radio</h1>
   </header>
 
@@ -737,8 +811,8 @@
     <div class="np-row">
       <button class="play-btn" id="playBtn" aria-label="Abspielen/Pause">▶</button>
       <div class="np-info">
-        <div class="np-label" id="npLabel">Kein Sender gewählt</div>
-        <div class="np-name" id="npName">—</div>
+        <div class="np-label" id="npLabel">Bereit</div>
+        <div class="np-name" id="npName">Noch kein Sender</div>
         <div class="np-status" id="npStatus">Wähle unten einen Sender</div>
       </div>
       <div class="bars" aria-hidden="true">
@@ -936,6 +1010,7 @@
           <div class="station-genre">${escapeHtml(st.genre || 'Eigener Sender')}${noStream ? ' · kein Direkt-Stream' : ''}</div>
         </div>
         ${st.id === currentId ? '<div class="station-eq" aria-hidden="true"><span></span><span></span><span></span></div>' : ''}
+        ${st.url && st.id !== currentId && !editing ? '<div class="station-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>' : ''}
         ${st.link && !editing ? '<a class="station-link" href="' + st.link + '" target="_blank" rel="noopener noreferrer" aria-label="Sender-Website öffnen" title="Sender-Website öffnen">↗</a>' : ''}
         ${editing ? toolsHtml(st, idx) : ''}
       `;
@@ -1038,7 +1113,7 @@
       updatePlayUI();
       npStatus.textContent = st.genre || 'Live-Stream';
     }).catch(() => {
-      npStatus.textContent = 'Nicht erreichbar (blockiert evtl. fremde Seiten oder ist http:// statt https://)';
+      npStatus.textContent = 'Stream gerade nicht erreichbar';
       isPlaying = false;
       updatePlayUI();
     });
@@ -1082,7 +1157,7 @@
     npStatus.textContent = st ? (st.genre || 'Live-Stream') : 'Live-Stream';
   });
   audio.addEventListener('error', () => {
-    npStatus.textContent = 'Nicht erreichbar (blockiert evtl. fremde Seiten oder ist http:// statt https://)';
+    npStatus.textContent = 'Stream gerade nicht erreichbar';
     isPlaying = false;
     updatePlayUI();
   });
@@ -1090,8 +1165,10 @@
   volume.addEventListener('input', () => {
     audio.volume = volume.value / 100;
     volVal.textContent = volume.value;
+    volume.style.setProperty('--fill', volume.value + '%');
   });
   audio.volume = 0.7;
+  volume.style.setProperty('--fill', '70%');
 
   addBtn.addEventListener('click', () => {
     const name = newName.value.trim();
@@ -1121,8 +1198,8 @@
       audio.pause();
       isPlaying = false;
       currentId = null;
-      npLabel.textContent = 'Kein Sender gewählt';
-      npName.textContent = '—';
+      npLabel.textContent = 'Bereit';
+      npName.textContent = 'Noch kein Sender';
       npStatus.textContent = 'Wähle unten einen Sender';
       updatePlayUI();
     }
