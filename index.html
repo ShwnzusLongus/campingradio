@@ -557,6 +557,78 @@
   .stations.editing .station:hover { transform: none; border-color: var(--card-border); }
   .stations.editing .station.active:hover { border-color: var(--ember); }
 
+  .head-actions { display: flex; gap: 8px; }
+
+  .station.slot { border-style: dashed; background: rgba(16,35,56,0.4); box-shadow: none; }
+  .station.slot::after { display: none; }
+  .station.slot:hover { border-color: var(--ember); }
+  .slot-plus {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px dashed var(--moss);
+    color: var(--moss);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .slot-name { color: var(--cream-dim); }
+  .station.slot:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  dialog#picker {
+    width: min(92vw, 640px);
+    max-height: 88vh;
+    padding: 0;
+    overflow: hidden;
+    color: var(--cream);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--card), var(--night-2));
+    box-shadow: 0 20px 60px rgba(4,10,18,0.7);
+  }
+  dialog#picker::backdrop { background: rgba(4,10,18,0.7); }
+  .picker-inner { padding: 18px; overflow-y: auto; max-height: 88vh; }
+  .picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .picker-head h2 { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .chip {
+    background: rgba(16,35,56,0.55);
+    border: 1px solid var(--card-border);
+    color: var(--cream);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 38px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .chip.on { background: var(--ember); border-color: var(--ember); color: var(--night); font-weight: 600; }
+  .chip:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  dialog#picker .add-form { background: none; border: none; box-shadow: none; padding: 0 0 16px; margin-bottom: 0 !important; }
+  dialog#picker .add-form::after { display: none; }
+  details.own { border-top: 1px solid var(--card-border); padding-top: 6px; }
+  details.own summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+  details.own .add-form { padding-bottom: 4px; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    transform: translate(-50%, 20px);
+    background: var(--night);
+    color: var(--cream);
+    border: 1px solid var(--card-border);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 30;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
   .icon {
     width: 20px;
     height: 20px;
@@ -682,11 +754,33 @@
 
   <div class="section-head">
     <div class="section-label">Sender</div>
-    <button class="edit-btn" id="editBtn" aria-pressed="false">Bearbeiten</button>
+    <div class="head-actions">
+      <button class="edit-btn" id="shareBtn" hidden>Teilen</button>
+      <button class="edit-btn" id="editBtn" aria-pressed="false">Bearbeiten</button>
+    </div>
   </div>
   <div class="stations" id="stations"></div>
   <button class="edit-btn restore-btn" id="restoreBtn" hidden>Entfernte Sender wiederherstellen</button>
 
+  <footer>Sender gehören ihren jeweiligen Anbietern. Wiedergabe direkt über deren Stream.</footer>
+</div>
+
+<div class="mini-player" id="miniPlayer" role="region" aria-label="Mini-Player">
+  <button class="mini-btn" id="miniPlay" aria-label="Abspielen">▶</button>
+  <div class="mini-info">
+    <div class="mini-name" id="miniName">—</div>
+    <div class="mini-status" id="miniStatus"></div>
+  </div>
+  <div class="bars" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+</div>
+
+<dialog id="picker" aria-labelledby="pickerTitle">
+  <div class="picker-inner">
+    <div class="picker-head">
+      <h2 id="pickerTitle">Sender wählen</h2>
+      <button class="edit-btn on" id="pickerClose">Fertig</button>
+    </div>
+    <div class="chips" id="chips"></div>
   <div class="add-form" style="margin-bottom: 20px;">
     <div class="add-form-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Sender suchen</div>
     <p class="add-form-hint">Durchsucht ein offenes Radio-Verzeichnis mit tausenden Sendern weltweit.</p>
@@ -698,6 +792,8 @@
     <div class="search-results" id="searchResults"></div>
   </div>
 
+    <details class="own">
+      <summary>Eigene Stream-URL eintragen</summary>
   <div class="add-form">
     <div class="add-form-title">Eigenen Sender hinzufügen</div>
     <p class="add-form-hint">Name + direkte Stream-URL (https). Wird auf diesem Gerät/Browser gespeichert.</p>
@@ -713,22 +809,17 @@
     <div class="error-msg" id="errorMsg"></div>
   </div>
 
-  <footer>Läuft direkt über den Stream des jeweiligen Senders</footer>
-</div>
-
-<div class="mini-player" id="miniPlayer" role="region" aria-label="Mini-Player">
-  <button class="mini-btn" id="miniPlay" aria-label="Abspielen">▶</button>
-  <div class="mini-info">
-    <div class="mini-name" id="miniName">—</div>
-    <div class="mini-status" id="miniStatus"></div>
+    </details>
   </div>
-  <div class="bars" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-</div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <audio id="audio" preload="none"></audio>
 
 <script>
-  const DEFAULT_STATIONS = [
+  // Nur noch für die Übernahme bei bestehenden Nutzern (früher vorinstalliert)
+  const LEGACY_DEFAULTS = [
     { id: 'groovesalad', name: 'SomaFM Groove Salad', genre: 'Ambient / Chillout', url: 'https://ice1.somafm.com/groovesalad-128-mp3', logo: '/logos/groovesalad.png', builtin: true },
     { id: 'antenne-nds', name: 'Antenne Niedersachsen', genre: 'Pop & Hits', url: 'https://stream.antenne.com/antenne-nds/mp3-192/stream.antenne.com/', logo: '/logos/antenne-nds.png', builtin: true },
     { id: 'njoy', name: 'N-JOY', genre: 'Charts & Pop', url: 'https://icecast.ndr.de/ndr/njoy/live/mp3/128/stream.mp3', logo: '/logos/njoy.png', builtin: true },
@@ -736,6 +827,8 @@
     { id: 'beatsradio', name: 'Beats Radio', genre: 'Deep House / Chillout', url: 'https://live.streams.klassikradio.de/beats-radio/stream/mp3', logo: '/logos/beatsradio.png', builtin: true },
     { id: 'starradio-bayern', name: 'Star Radio Bayern', genre: 'Pop, Dance, HipHop & RnB', url: 'https://starradiode.ice.infomaniak.ch/starradio-de-128.mp3', link: 'https://www.starradio.bayern/', logo: '/logos/starradio-bayern.png', builtin: true },
   ];
+  const DEFAULT_STATIONS = []; // nichts vorinstalliert
+  const MIN_SLOTS = 6;      // so viele Plätze zeigt die Liste mindestens
 
   const STORAGE_KEY = 'lagerfeuer-fm-custom-stations';
 
@@ -777,11 +870,11 @@
   function loadState() {
     const st = readJson(STATE_KEY);
     if (st && typeof st === 'object') {
-      return { order: st.order || [], removed: st.removed || [], custom: st.custom || [] };
+      return { order: st.order || [], removed: st.removed || [], custom: st.custom || [], migrated: !!st.migrated, hadData: true };
     }
     // Übernahme der alten Speicherung (nur eigene Sender)
     const old = readJson(STORAGE_KEY);
-    return { order: [], removed: [], custom: Array.isArray(old) ? old : [] };
+    return { order: [], removed: [], custom: Array.isArray(old) ? old : [], migrated: false, hadData: Array.isArray(old) };
   }
 
   // Speichert Reihenfolge, entfernte Standard-Sender und eigene Sender
@@ -789,6 +882,7 @@
     const state = {
       order: stations.map(s => s.id),
       removed: removedIds,
+      migrated: true,
       custom: stations.filter(s => !s.builtin)
     };
     try {
@@ -800,17 +894,28 @@
 
   function init() {
     const state = loadState();
-    removedIds = state.removed.filter(id => DEFAULT_STATIONS.some(s => s.id === id));
-    const all = [...DEFAULT_STATIONS, ...state.custom].filter(s => !removedIds.includes(s.id));
+    let migrated = false;
+    if (state.hadData && !state.migrated) {
+      // Frühere Version hatte 6 Standard-Sender: bei bestehenden Nutzern als eigene Sender übernehmen
+      LEGACY_DEFAULTS
+        .filter(d => !state.removed.includes(d.id) && !state.custom.some(c => c.id === d.id))
+        .forEach(d => state.custom.push({ ...d, builtin: false }));
+      migrated = true;
+    }
+    removedIds = [];
+    const all = state.custom;
     const pos = id => { const i = state.order.indexOf(id); return i === -1 ? Infinity : i; };
     stations = all
       .map((st, i) => ({ st, i }))
       .sort((a, b) => (pos(a.st.id) - pos(b.st.id)) || (a.i - b.i))
       .map(x => x.st);
     renderStations();
+    if (migrated) saveCustomStations();
   }
 
   function renderStations() {
+    if (!stations.length) editing = false;
+    if (!currentId) npStatus.textContent = stations.length ? 'Wähle unten einen Sender' : 'Tippe unten auf einen leeren Platz';
     stationsEl.innerHTML = '';
     stations.forEach((st, idx) => {
       const div = document.createElement('div');
@@ -852,6 +957,26 @@
       });
       stationsEl.appendChild(div);
     });
+    if (!editing) {
+      const empties = Math.max(1, MIN_SLOTS - stations.length);
+      for (let i = 0; i < empties; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'station slot';
+        slot.tabIndex = 0;
+        slot.setAttribute('role', 'button');
+        const full = stations.length >= MIN_SLOTS;
+        slot.innerHTML =
+          '<div class="slot-plus" aria-hidden="true">' + ICON_PLUS + '</div>' +
+          '<div class="station-info"><div class="station-name slot-name">' +
+          (full ? 'Weiteren Sender hinzufügen' : 'Sender wählen') + '</div>' +
+          (full ? '' : '<div class="station-genre">Leerer Platz</div>') + '</div>';
+        slot.addEventListener('click', openPicker);
+        slot.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
+        });
+        stationsEl.appendChild(slot);
+      }
+    }
     stationsEl.querySelectorAll('.tool-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -934,7 +1059,7 @@
   playBtn.addEventListener('click', () => {
     if (!currentId) {
       const first = stations.find(s => s.url);
-      if (first) playStation(first);
+      if (first) playStation(first); else openPicker();
       return;
     }
     if (isPlaying) {
@@ -1017,13 +1142,7 @@
     searchBtn.disabled = true;
     searchBtn.textContent = 'Sucht...';
     try {
-      const res = await fetch(
-        'https://de1.api.radio-browser.info/json/stations/search?name=' +
-        encodeURIComponent(query) +
-        '&limit=15&hidebroken=true&order=clickcount&reverse=true'
-      );
-      if (!res.ok) throw new Error('Suche fehlgeschlagen');
-      const results = await res.json();
+      const results = await rbFetch('name=' + encodeURIComponent(query) + RB_BASE);
       renderSearchResults(results);
     } catch (e) {
       searchError.textContent = 'Suche gerade nicht erreichbar. Später nochmal versuchen.';
@@ -1058,10 +1177,15 @@
         <button class="search-result-add">+ Hinzufügen</button>
       `;
       div.querySelector('.search-result-add').addEventListener('click', () => {
-        addStationDirect(r.name || 'Unbenannt', url, r.tags || 'Gefundener Sender');
+        addStationDirect(r.name || 'Unbenannt', url, (r.tags || '').split(',').filter(Boolean).slice(0, 2).join(' · ') || 'Gefundener Sender');
         div.querySelector('.search-result-add').textContent = '✓ Hinzugefügt';
         div.querySelector('.search-result-add').disabled = true;
       });
+      if (stations.some(x => x.url === url)) {
+        const b = div.querySelector('.search-result-add');
+        b.textContent = '✓ Hinzugefügt';
+        b.disabled = true;
+      }
       searchResults.appendChild(div);
     });
   }
@@ -1133,6 +1257,140 @@
     }).observe(nowPlaying);
   }
 
+  // --- Verzeichnis (radio-browser.info) ---
+  const RB_HOSTS = ['de1', 'de2', 'fi1'];
+  const RB_BASE = '&limit=20&hidebroken=true&order=clickcount&reverse=true&is_https=true';
+  const CHIPS = [
+    ['Beliebt in Deutschland', 'countrycode=DE'],
+    ['Pop', 'tag=pop&countrycode=DE'],
+    ['Rock', 'tag=rock&countrycode=DE'],
+    ['Schlager', 'tag=schlager&countrycode=DE'],
+    ['Nachrichten', 'tag=news&countrycode=DE'],
+    ['Chillout', 'tag=chillout']
+  ];
+
+  async function rbFetch(query) {
+    let lastErr;
+    for (const h of RB_HOSTS) {
+      try {
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 8000);
+        const res = await fetch('https://' + h + '.api.radio-browser.info/json/stations/search?' + query, { signal: ctl.signal });
+        clearTimeout(timer);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr;
+  }
+
+  const ICON_PLUS = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const picker = document.getElementById('picker');
+  const chipsEl = document.getElementById('chips');
+
+  async function browse(query, chipBtn) {
+    chipsEl.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === chipBtn));
+    searchError.textContent = '';
+    searchResults.innerHTML = '<div class="search-hint">Lade Sender …</div>';
+    try {
+      renderSearchResults(await rbFetch(query + RB_BASE));
+    } catch (e) {
+      searchResults.innerHTML = '';
+      searchError.textContent = 'Verzeichnis gerade nicht erreichbar. Später nochmal versuchen.';
+    }
+  }
+
+  CHIPS.forEach(([label, query]) => {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = label;
+    b.addEventListener('click', () => browse(query, b));
+    chipsEl.appendChild(b);
+  });
+
+  function openPicker() {
+    if (typeof picker.showModal === 'function') picker.showModal();
+    else picker.setAttribute('open', '');
+    if (!searchResults.children.length) browse(CHIPS[0][1], chipsEl.firstChild);
+  }
+  function closePicker() {
+    if (typeof picker.close === 'function') picker.close();
+    else picker.removeAttribute('open');
+  }
+  document.getElementById('pickerClose').addEventListener('click', closePicker);
+  picker.addEventListener('click', (e) => { if (e.target === picker) closePicker(); });
+
+  // --- Senderliste teilen / importieren ---
+  const shareBtn = document.getElementById('shareBtn');
+  const toastEl = document.getElementById('toast');
+  let toastTimer;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+  }
+
+  function encodeList(list) {
+    const json = JSON.stringify(list.filter(x => x.url).map(x => [x.name, x.url, x.genre || '']));
+    let bin = '';
+    new TextEncoder().encode(json).forEach(b => { bin += String.fromCharCode(b); });
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function decodeList(code) {
+    const b64 = code.replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64 + '==='.slice((b64.length + 3) % 4));
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    const arr = JSON.parse(new TextDecoder().decode(bytes));
+    if (!Array.isArray(arr)) throw new Error('Format');
+    return arr.slice(0, 50)
+      .filter(x => Array.isArray(x) && typeof x[0] === 'string' && typeof x[1] === 'string' && /^https:\/\//i.test(x[1]))
+      .map(x => ({ name: x[0].trim().slice(0, 80) || 'Sender', url: x[1].trim(), genre: String(x[2] || '').slice(0, 60) }));
+  }
+
+  shareBtn.addEventListener('click', async () => {
+    const link = location.origin + location.pathname + '#liste=' + encodeList(stations);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Camping Radio – Senderliste', text: 'Meine Sender für Camping Radio', url: link });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast('Link kopiert');
+    } catch (e) {
+      window.prompt('Link zum Teilen:', link);
+    }
+  });
+
+  function importFromHash() {
+    const m = location.hash.match(/^#liste=([\w-]+)$/);
+    if (!m) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    let list;
+    try { list = decodeList(m[1]); } catch (e) { showToast('Link konnte nicht gelesen werden'); return; }
+    if (!list.length) { showToast('Keine Sender im Link gefunden'); return; }
+    const fresh = list.filter(x => !stations.some(s => s.url === x.url));
+    if (!fresh.length) { showToast('Alle Sender sind schon in deiner Liste'); return; }
+    if (!confirm(fresh.length + ' Sender aus der geteilten Liste hinzufügen?\n\n' + fresh.map(x => '• ' + x.name).join('\n'))) return;
+    fresh.forEach(x => {
+      stations.push({
+        id: 'custom-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        name: x.name, genre: x.genre || 'Geteilter Sender', url: x.url, builtin: false
+      });
+    });
+    saveCustomStations();
+    renderStations();
+    showToast(fresh.length + ' Sender hinzugefügt');
+  }
+  window.addEventListener('hashchange', importFromHash);
+
   // --- Bearbeiten-Modus (Sortieren / Entfernen) ---
   const editBtn = document.getElementById('editBtn');
   const restoreBtn = document.getElementById('restoreBtn');
@@ -1143,6 +1401,8 @@
     editBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
     stationsEl.classList.toggle('editing', editing);
     restoreBtn.hidden = !(editing && removedIds.length);
+    editBtn.hidden = !stations.length;
+    shareBtn.hidden = !stations.length;
     restoreBtn.textContent = 'Entfernte Sender wiederherstellen (' + removedIds.length + ')';
   }
 
@@ -1159,6 +1419,7 @@
   });
 
   init();
+  importFromHash();
 </script>
 </body>
 </html>
