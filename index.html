@@ -650,6 +650,15 @@
   .stations.editing .station:active { transform: none; }
   #shareBtn { background: transparent; border-color: transparent; color: var(--gold); }
 
+  /* Live-Modus: Höhe kommt aus dem echten Ton, keine Dauer-Animation */
+  .live-audio .now-playing.playing .bars span,
+  .live-audio .mini-player.playing .bars span,
+  .live-audio .now-playing.playing ~ .stations .station.active .station-eq span {
+    animation: none;
+    opacity: 1;
+    transition: height 0.09s linear;
+  }
+
   .head-actions { display: flex; gap: 8px; }
 
   .station.slot { border-style: dashed; background: rgba(16,35,56,0.4); box-shadow: none; }
@@ -1126,6 +1135,9 @@
     npLabel.textContent = 'Läuft';
     npName.textContent = st.name;
     npStatus.textContent = 'Verbinde...';
+    attemptPlaying = false;
+    if (corsFailed.has(st.id)) audio.removeAttribute('crossorigin');
+    else audio.crossOrigin = 'anonymous'; // nötig, damit der Ton für die Animation ausgewertet werden darf
     audio.src = st.url;
     setMediaSession(st);
     audio.play().then(() => {
@@ -1173,10 +1185,13 @@
 
   audio.addEventListener('waiting', () => { if (isPlaying) npStatus.textContent = 'Puffert...'; });
   audio.addEventListener('playing', () => {
+    attemptPlaying = true;
+    startViz();
     const st = stations.find(s => s.id === currentId);
     npStatus.textContent = st ? (st.genre || 'Live-Stream') : 'Live-Stream';
   });
   audio.addEventListener('error', () => {
+    if (retryWithoutCors()) return;
     npStatus.textContent = 'Stream gerade nicht erreichbar';
     isPlaying = false;
     updatePlayUI();
@@ -1302,6 +1317,101 @@
   searchInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); searchStations(); }
   });
+
+  // --- Balken folgen dem echten Ton ---
+  // Der Ton wird nur "mitgehört" (captureStream), aber nicht umgeleitet:
+  // Wiedergabe, Lautstärke und Sperrbildschirm bleiben unverändert.
+  // Klappt es nicht (Sender ohne CORS, alter Browser), laufen die Balken wie bisher als Animation.
+  const corsFailed = new Set();
+  let attemptPlaying = false;
+  let vizCtx = null, vizAnalyser = null, vizSource = null, vizData = null;
+  let vizRaf = 0, vizZero = 0, vizLive = false;
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const BAND_EDGES = [[0, 1], [2, 4], [5, 9], [10, 20]];
+
+  function retryWithoutCors() {
+    const st = stations.find(x => x.id === currentId);
+    if (!st || attemptPlaying || !audio.crossOrigin || corsFailed.has(st.id)) return false;
+    corsFailed.add(st.id);
+    audio.removeAttribute('crossorigin');
+    audio.src = st.url;
+    npStatus.textContent = 'Verbinde...';
+    audio.play().then(() => { isPlaying = true; updatePlayUI(); }).catch(() => {});
+    return true;
+  }
+
+  function setupAnalyser() {
+    if (reduceMotion || !audio.crossOrigin) return false;
+    const capture = audio.captureStream || audio.mozCaptureStream;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!capture || !Ctx) return false;
+    try {
+      if (!vizCtx) {
+        vizCtx = new Ctx();
+        vizAnalyser = vizCtx.createAnalyser();
+        vizAnalyser.fftSize = 64;
+        vizAnalyser.smoothingTimeConstant = 0.55;
+        const mute = vizCtx.createGain();
+        mute.gain.value = 0;
+        vizAnalyser.connect(mute);
+        mute.connect(vizCtx.destination);
+        vizData = new Uint8Array(vizAnalyser.frequencyBinCount);
+      }
+      if (vizCtx.state === 'suspended') vizCtx.resume();
+      if (vizSource) { try { vizSource.disconnect(); } catch (e) {} }
+      const stream = capture.call(audio);
+      if (!stream.getAudioTracks().length) return false;
+      vizSource = vizCtx.createMediaStreamSource(stream);
+      vizSource.connect(vizAnalyser);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function vizReset() {
+    document.querySelectorAll('.bars span, .station-eq span').forEach(el => { el.style.height = ''; });
+  }
+
+  function vizFrame() {
+    vizRaf = 0;
+    if (audio.paused || !vizLive) { vizReset(); return; }
+    if (vizCtx.state === 'suspended') vizCtx.resume();
+    vizAnalyser.getByteFrequencyData(vizData);
+    let total = 0;
+    const lv = BAND_EDGES.map(([a, b]) => {
+      let sum = 0;
+      for (let i = a; i <= b; i++) sum += vizData[i];
+      total += sum;
+      return Math.min(1, sum / (b - a + 1) / 190);
+    });
+    if (total === 0) {
+      // Dauerhaft Stille in den Daten: Ton lässt sich nicht auswerten, zurück zur normalen Animation
+      if (++vizZero > 240) {
+        vizLive = false;
+        document.body.classList.remove('live-audio');
+        vizReset();
+        return;
+      }
+    } else {
+      vizZero = 0;
+    }
+    document.querySelectorAll('.now-playing .bars span, .mini-player .bars span').forEach((el, i) => {
+      el.style.height = (4 + lv[i % 4] * 18).toFixed(1) + 'px';
+    });
+    document.querySelectorAll('.station.active .station-eq span').forEach((el, i) => {
+      el.style.height = (4 + lv[[0, 2, 1][i % 3]] * 11).toFixed(1) + 'px';
+    });
+    vizRaf = requestAnimationFrame(vizFrame);
+  }
+
+  function startViz() {
+    vizLive = setupAnalyser();
+    vizZero = 0;
+    document.body.classList.toggle('live-audio', vizLive);
+    if (vizLive) { if (!vizRaf) vizRaf = requestAnimationFrame(vizFrame); }
+    else vizReset();
+  }
 
   // --- Sperrbildschirm-Steuerung (Media Session) ---
   function setMediaSession(st) {
