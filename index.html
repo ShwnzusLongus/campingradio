@@ -825,6 +825,131 @@
   @media (prefers-reduced-motion: reduce) {
     .ember-glow, .bars span, .station-eq span { animation: none !important; }
   }
+
+  /* =====================================================================
+     Elevation: ruhige Glasflächen, ein Akzent (Orange), einheitliche Skala
+     Abstände: 4/8/12/16/24/32 · Radien: 12 (Felder), 16 (Karten), 24 (Player/Fenster)
+     ===================================================================== */
+  :root {
+    --glass: rgba(22, 62, 96, 0.66);
+    --glass-strong: rgba(14, 38, 62, 0.84);
+    --glass-border: rgba(251, 243, 226, 0.10);
+    --radius: 16px;
+    --shadow-card: 0 8px 24px rgba(4, 10, 18, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  body::before { background: linear-gradient(180deg, rgba(16,35,56,0.40), rgba(16,35,56,0.72)); }
+
+  header { margin-bottom: 24px; }
+  h1 { font-size: clamp(34px, 9vw, 44px); letter-spacing: -0.02em; }
+
+  .now-playing {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    backdrop-filter: blur(16px) saturate(1.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 16px 40px rgba(4, 10, 18, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: border-color 0.4s ease;
+  }
+  .now-playing::after { display: none; }
+  .now-playing.playing { border-color: rgba(242, 163, 92, 0.40); }
+  .np-row { gap: 16px; }
+  .play-btn {
+    width: 68px;
+    height: 68px;
+    font-size: 22px;
+    box-shadow: 0 8px 24px rgba(242, 163, 92, 0.35), 0 0 0 6px rgba(242, 163, 92, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  .np-label { font-size: 12px; }
+  .np-name { font-size: 22px; letter-spacing: -0.01em; }
+  .np-status { font-size: 14px; margin-top: 4px; }
+  .np-controls { margin-top: 24px; }
+
+  .section-label { font-size: 12px; letter-spacing: 0.18em; }
+  .stations { gap: 12px; }
+
+  .station {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    backdrop-filter: blur(12px) saturate(1.2);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-card);
+  }
+  .station::after { display: none; }
+  .station:hover { background: rgba(30, 74, 110, 0.72); border-color: rgba(242, 163, 92, 0.45); }
+  .station.active { background: rgba(242, 163, 92, 0.13); border-color: rgba(242, 163, 92, 0.55); }
+  .station-name { font-size: 16px; letter-spacing: -0.005em; }
+  .station-genre {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    color: var(--cream-dim);
+    opacity: 0.85;
+  }
+  .station.slot {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px dashed rgba(251, 243, 226, 0.25);
+    box-shadow: none;
+  }
+  .station.slot:hover { background: rgba(251, 243, 226, 0.04); border-color: var(--ember); }
+  .slot-plus { border-color: rgba(242, 163, 92, 0.55); color: var(--ember); }
+
+  .edit-btn, .chip {
+    background: rgba(251, 243, 226, 0.06);
+    border: 1px solid var(--glass-border);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .edit-btn:hover, .chip:hover { background: rgba(251, 243, 226, 0.12); }
+  .edit-btn.on, .chip.on { background: var(--ember); border-color: var(--ember); }
+  #shareBtn { background: transparent; border-color: transparent; }
+  .tool-btn { background: rgba(251, 243, 226, 0.06); border-color: var(--glass-border); }
+
+  .add-btn { background: var(--ember); color: var(--night); border-radius: 12px; min-height: 44px; transition: background 0.15s ease; }
+  .add-btn:hover { background: #f5b374; }
+  .add-form input {
+    background: rgba(8, 22, 36, 0.50);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+  .add-form input:focus { border-color: var(--ember); box-shadow: 0 0 0 3px rgba(242, 163, 92, 0.18); }
+  .add-form-title .icon { color: var(--ember); }
+
+  .search-result {
+    background: rgba(8, 22, 36, 0.40);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .search-result-meta { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; }
+  .search-result-add { border-radius: 10px; padding: 8px 12px; }
+
+  dialog#picker {
+    background: var(--glass-strong);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: 0 24px 64px rgba(4, 10, 18, 0.60);
+  }
+  details.own { border-top-color: var(--glass-border); }
+
+  .mini-player {
+    background: var(--glass-strong);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid rgba(242, 163, 92, 0.45);
+    border-radius: 20px;
+    box-shadow: 0 12px 32px rgba(4, 10, 18, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
 </style>
 </head>
 <body>
